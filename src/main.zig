@@ -16,10 +16,12 @@
 /// 3. Neither the name of the copyright holder nor the names of its
 ///    contributors may be used to endorse or promote products derived from
 ///    this software without specific prior written permission.
+///
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const log = std.log;
 const filestream = std.fs;
+const endianess = std.builtin.endian;
 
 const MAGIC: [16]u8 = &[_]u8{
     0x53, 0x42, 0x4F, 0x4D, 0xD6, 0xBA, 0x2E, 0xAC,
@@ -32,8 +34,26 @@ const uSWID = struct {
     Header_size: u16,
     Payload_size: u16,
     Payload: []const u8,
+
+    const Self = @This();
+
+    // TODO
+    fn new(self: Self, data: []u8) *Self {
+        const content_sz = std.mem.len(data);
+
+        for (data) |value, index| {
+            if (value == MAGIC[index]) {
+                self.Magic = switch (endianess) {
+                    .Big => @shrExact(value, content_sz),
+                    .Little => @shlExact(value, content_sz),
+                };
+            }
+        }
+        return &self;
+    }
 };
 
+// Zig init-exe example code
 pub fn main() !void {
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
